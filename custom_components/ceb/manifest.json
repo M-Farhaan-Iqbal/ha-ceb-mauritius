@@ -7,5 +7,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/M-Farhaan-Iqbal/ha-ceb-mauritius/issues",
   "requirements": [],
-  "version": "0.0.1"
+  "version": "0.0.0.1"
 }

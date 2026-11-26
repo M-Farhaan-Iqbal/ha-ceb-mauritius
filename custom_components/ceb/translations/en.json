@@ -10,10 +10,10 @@
       },
       "register": {
         "title": "CEB Mauritius",
-        "description": "Enter the email registered on the MoKouran app, choose a 4-digit PIN for Home Assistant (can differ from your phone's), and your contract account number (on your bill). CEB will email you a one-time code.",
+        "description": "Enter the email registered on the MoKouran app, enter your MoKouran app PIN (the same one you use in the app), and your contract account number (on your bill). CEB will email you a one-time code.",
         "data": {
           "email": "MoKouran email",
-          "pin": "New 4-digit PIN",
+          "pin": "MoKouran PIN",
           "account_number": "Contract number (on bill)"
         }
       },
