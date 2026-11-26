@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "CEB Mauritius",
+        "menu_options": {
+          "register": "Register with my MoKouran email (recommended)",
+          "manual": "Advanced: enter an existing device ID and PIN"
+        }
+      },
+      "register": {
+        "title": "CEB Mauritius",
+        "description": "Enter the email registered on the MoKouran app, choose a 4-digit PIN for Home Assistant (can differ from your phone's), and your contract account number (on your bill). CEB will email you a one-time code.",
+        "data": {
+          "email": "MoKouran email",
+          "pin": "New 4-digit PIN",
+          "account_number": "Contract number (on bill)"
+        }
+      },
+      "activate": {
+        "title": "Activate Home Assistant on your CEB account",
+        "description": "Enter the one-time code CEB just emailed you.",
+        "data": {
+          "code": "Emailed code"
+        }
+      },
+      "manual": {
+        "title": "CEB Mauritius (advanced)",
+        "description": "Enter an existing MoKouran device ID and PIN, plus the contract account number.",
+        "data": {
+          "device_id": "Device ID",
+          "pin": "PIN",
+          "account_number": "Contract number (on bill)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Device ID or PIN rejected.",
+      "bad_code": "The code was rejected. Check the emailed code and try again.",
+      "user_not_found": "No MoKouran app user for that email. Use the email registered in the MoKouran app (not necessarily your CEB bill email).",
+      "cannot_connect": "Could not reach CEB."
+    },
+    "abort": {
+      "already_configured": "This account is already added."
+    }
+  }
+}

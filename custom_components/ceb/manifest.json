@@ -1,0 +1,11 @@
+{
+  "domain": "ceb",
+  "name": "CEB Mauritius",
+  "codeowners": ["@M-Farhaan-Iqbal"],
+  "config_flow": true,
+  "documentation": "https://github.com/M-Farhaan-Iqbal/ha-ceb-mauritius",
+  "issue_tracker": "https://github.com/M-Farhaan-Iqbal/ha-ceb-mauritius/issues",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "1.11.1"
+}
