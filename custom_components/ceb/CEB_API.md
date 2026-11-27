@@ -123,3 +123,9 @@ No tariff-rate endpoint exists (`Tariffs`, `TariffRates`, `Rates`, `Tariffs/getR
 `getMyDashboardDetail.tariff` (e.g. `TARIF_110A`), but the Rs/kWh bands are not served.
 Rates are national and gazetted; the integration hardcodes them in `tariff.py` from the CEB
 domestic-tariff page and selects the band set by the account's tariff code. See README.
+
+## One active device per account
+
+`activateAccountOnAnotherDevice` **moves** the account to the new `deviceId` and invalidates the
+previous one (confirmed 2026-11-27: after activating a second device, `loginPin` on the first returned
+`404 USER_NOT_EXIST`). So HA and the phone app cannot both stay logged in. See README "Known limitation".

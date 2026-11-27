@@ -67,3 +67,21 @@ notes: [`custom_components/ceb/CEB_API.md`](custom_components/ceb/CEB_API.md).
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Known limitation — one active device per account
+
+CEB's MoKouran backend allows only **one active device per account**. This integration registers
+Home Assistant as a device via `activateAccountOnAnotherDevice`, which **replaces** whatever device
+was active before (it does not add one).
+
+Consequences:
+- Registering Home Assistant **logs you out of the MoKouran phone app**.
+- If you then open/use the phone app, it re-registers and **kicks Home Assistant**. HA's next poll
+  fails with `USER_NOT_EXIST` -> `ConfigEntryAuthFailed` -> reauth. Re-entering the PIN alone will **not**
+  recover it, because the *device* binding is gone, not just the PIN — you have to re-add the integration.
+
+This is a CEB backend constraint, not something the integration can work around.
+
+**Recommendation:** use a **dedicated MoKouran account** for Home Assistant (register a separate CEB app
+account with its own email), or accept that HA and the phone app cannot be logged in at the same time.
+
