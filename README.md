@@ -30,6 +30,14 @@ Sensors (`sensor.ceb_<account>_*`):
 
 Polls every 6 hours (CEB data lags ~1–2 days); retries in 15 min after a failure.
 
+## Planned outages
+
+`sensor.ceb_<account>_planned_outages` = count of CEB planned power cuts, scraped from
+<https://ceb.mu/customer-corner/power-outage-information>. The full list is in the `outages`
+attribute: `[{district, date, start, end, locality, streets}]`. Use the integration's **Configure**
+dialog to pick a **district** and an optional **locality / street keyword** to filter. Refreshed every
+6 h, independent of your account login. (It is an HTML scrape — may break if CEB changes the page.)
+
 ## Install (HACS)
 
 1. HACS → ⋮ → **Custom repositories** → add this repo, category **Integration**.
