@@ -23,7 +23,7 @@ from .const import (
 from .outages import fetch_outages
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 RETRY_INTERVAL = timedelta(minutes=15)
 
 

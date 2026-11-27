@@ -20,7 +20,7 @@ from homeassistant.util import dt as dt_util
 
 from . import tariff
 from .const import CONF_ACCOUNT, CONF_DISTRICT, CONF_LOCALITY, DOMAIN
-from .outages import filter_outages
+from .outages import filter_outages, upcoming
 
 
 def _tariff_code(data: dict) -> str:
@@ -290,10 +290,13 @@ class CebOutageSensor(CoordinatorEntity, SensorEntity):
         )
 
     def _matches(self) -> list[dict]:
-        return filter_outages(
-            self.coordinator.data or [],
-            self._entry.options.get(CONF_DISTRICT),
-            self._entry.options.get(CONF_LOCALITY),
+        """Future outages for the configured district/locality, soonest first."""
+        return upcoming(
+            filter_outages(
+                self.coordinator.data or [],
+                self._entry.options.get(CONF_DISTRICT),
+                self._entry.options.get(CONF_LOCALITY),
+            )
         )
 
     @property
@@ -302,8 +305,15 @@ class CebOutageSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
+        m = self._matches()
+        nxt = m[0] if m else None
         return {
             "district": self._entry.options.get(CONF_DISTRICT) or "all",
             "locality_filter": self._entry.options.get(CONF_LOCALITY) or None,
-            "outages": self._matches(),  # [{district,date,start,end,locality,streets,raw}]
+            "next_date": nxt["date"] if nxt else None,
+            "next_start": nxt["start"] if nxt else None,
+            "next_end": nxt["end"] if nxt else None,
+            "next_locality": nxt["locality"] if nxt else None,
+            "next_streets": nxt["streets"] if nxt else None,
+            "outages": m,  # future, soonest first: [{district,date,start,end,locality,streets,raw}]
         }

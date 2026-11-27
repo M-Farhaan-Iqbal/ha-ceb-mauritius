@@ -9,6 +9,7 @@ the page. Dates are French, e.g. "Le samedi 28 novembre 2026 de 08:30:00 a 12:00
 """
 from __future__ import annotations
 
+import datetime
 import html
 import json
 import logging
@@ -116,6 +117,24 @@ def filter_outages(
     return res
 
 
+def upcoming(rows: list[dict], today: datetime.date | None = None) -> list[dict]:
+    """Future/today outages only, soonest first. Undated rows are kept (can't rule out)."""
+    today = today or datetime.date.today()
+
+    def keep(r: dict) -> bool:
+        if not r.get("date"):
+            return True
+        try:
+            return datetime.date.fromisoformat(r["date"]) >= today
+        except ValueError:
+            return True
+
+    return sorted(
+        (r for r in rows if keep(r)),
+        key=lambda r: (r.get("date") or "9999-99-99", r.get("start") or ""),
+    )
+
+
 def demo() -> None:
     sample = (
         'x; arDistrictLocations = {"rivieredurempart":"<table><tr><th>Date</th>'
@@ -132,6 +151,11 @@ def demo() -> None:
     assert len(filter_outages(rows, "moka", None)) == 0
     assert len(filter_outages(rows, "rivieredurempart", "goodlands")) == 1
     assert len(filter_outages(rows, "rivieredurempart", "pereybere")) == 0
+    past = [{"district": "moka", "date": "2000-01-01", "start": "08:00", "end": "09:00",
+             "locality": "X", "streets": "Y", "raw": ""}]
+    ref = datetime.date(2026, 11, 27)
+    assert upcoming(rows + past, ref)[0]["date"] == "2026-11-28"  # future kept, sorted
+    assert all(u["date"] != "2000-01-01" for u in upcoming(rows + past, ref))  # past dropped
     print("outages.demo OK:", r)
 
 
