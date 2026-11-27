@@ -15,11 +15,18 @@ import json
 import logging
 import re
 import unicodedata
+from zoneinfo import ZoneInfo
 
 try:
-    from .const import OUTAGE_URL
+    from .const import OUTAGE_DATASET_URL, OUTAGE_URL
 except ImportError:  # running the self-check standalone
     OUTAGE_URL = "https://ceb.mu/customer-corner/power-outage-information"
+    OUTAGE_DATASET_URL = (
+        "https://raw.githubusercontent.com/MrSunshyne/mauritius-dataset-electricity"
+        "/main/data/power-outages.latest.json"
+    )
+
+_MU_TZ = ZoneInfo("Indian/Mauritius")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,13 +98,59 @@ def parse(page_html: str) -> list[dict]:
     return out
 
 
+def _norm_entry(e: dict) -> dict:
+    """A dataset entry -> our row schema, deriving local date/start/end from ISO from/to."""
+    def mu(iso: str | None) -> tuple[str | None, str | None]:
+        if not iso:
+            return None, None
+        dt = datetime.datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(_MU_TZ)
+        return dt.strftime("%Y-%m-%d"), dt.strftime("%H:%M")
+
+    date, start = mu(e.get("from"))
+    _, end = mu(e.get("to"))
+    return {
+        "district": e.get("district"),
+        "date": date,
+        "start": start,
+        "end": end,
+        "locality": e.get("locality", ""),
+        "streets": e.get("streets", ""),
+        "raw": e.get("date", ""),
+        "from": e.get("from"),
+        "to": e.get("to"),
+        "id": e.get("outageId") or e.get("id"),
+    }
+
+
+def from_dataset(obj: dict) -> list[dict]:
+    """MrSunshyne power-outages.latest.json ({today:[], future:[]}) -> rows."""
+    rows: list[dict] = []
+    for bucket in ("today", "future"):
+        for e in obj.get(bucket) or []:
+            rows.append(_norm_entry(e))
+    return rows
+
+
 async def fetch_outages(session) -> list[dict]:
-    """Fetch and parse the CEB planned-outage page."""
+    """Planned outages. Primary: MrSunshyne dataset (structured, ISO times, today+future).
+    Fallback: scrape the CEB page. Raises only if BOTH fail."""
     import aiohttp
 
-    async with session.get(OUTAGE_URL, timeout=aiohttp.ClientTimeout(total=30)) as r:
-        r.raise_for_status()
-        return parse(await r.text())
+    try:
+        async with session.get(
+            OUTAGE_DATASET_URL, timeout=aiohttp.ClientTimeout(total=30)
+        ) as r:
+            r.raise_for_status()
+            return from_dataset(await r.json(content_type=None))
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning(
+            "CEB outage dataset failed (%r); falling back to ceb.mu scrape", err
+        )
+        async with session.get(
+            OUTAGE_URL, timeout=aiohttp.ClientTimeout(total=30)
+        ) as r:
+            r.raise_for_status()
+            return parse(await r.text())
 
 
 def filter_outages(
@@ -156,6 +209,24 @@ def demo() -> None:
     ref = datetime.date(2026, 11, 27)
     assert upcoming(rows + past, ref)[0]["date"] == "2026-11-28"  # future kept, sorted
     assert all(u["date"] != "2000-01-01" for u in upcoming(rows + past, ref))  # past dropped
+    # dataset normalization: ISO from/to -> Mauritius local date/start/end
+    ds = from_dataset(
+        {
+            "today": [],
+            "future": [
+                {
+                    "date": "Le vendredi 27 novembre 2026 de 08:30:00 a 15:00:00",
+                    "locality": "16EME MILE", "streets": "Route Royale",
+                    "district": "plainewilhems",
+                    "from": "2026-11-27T04:30:00.000Z", "to": "2026-11-27T11:00:00.000Z",
+                    "id": "a", "outageId": "b",
+                }
+            ],
+        }
+    )
+    assert len(ds) == 1 and ds[0]["date"] == "2026-11-27", ds
+    assert ds[0]["start"] == "08:30" and ds[0]["end"] == "15:00", ds  # UTC+4
+    assert ds[0]["district"] == "plainewilhems" and ds[0]["id"] == "b"
     print("outages.demo OK:", r)
 
 

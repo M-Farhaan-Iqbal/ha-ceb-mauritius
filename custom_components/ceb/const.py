@@ -11,7 +11,12 @@ CONF_LOCALITY = "locality"
 # polling interval; CEB meter data changes at most monthly, dashboard syncs a few times/day
 SCAN_INTERVAL_HOURS = 6
 
-# planned-outage scrape (ceb.mu website, not the MoKouran API); changes slowly
+# planned outages. Primary source: MrSunshyne's hourly-updated open dataset (structured JSON,
+# ISO times, today/future split). Fallback: scrape the CEB page directly. Changes slowly.
+OUTAGE_DATASET_URL = (
+    "https://raw.githubusercontent.com/MrSunshyne/mauritius-dataset-electricity"
+    "/main/data/power-outages.latest.json"
+)
 OUTAGE_URL = "https://ceb.mu/customer-corner/power-outage-information"
 OUTAGE_SCAN_HOURS = 6
 

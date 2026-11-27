@@ -42,8 +42,9 @@ use it for notifications. Same `next_*` attributes.
 
 Use the integration's **Configure** dialog to pick a **district** and an optional **locality / street
 keyword**. With a locality keyword, only outages whose locality/streets contain it match (e.g. `PEREYBERE`),
-so you are alerted only for your area. Refreshed every 6 h, independent of your account login.
-(It is an HTML scrape — may break if CEB changes the page.)
+so you are alerted only for your area. Refreshed every 6 h, independent of your account login. Data source: MrSunshyne's open dataset
+[mauritius-dataset-electricity](https://github.com/MrSunshyne/mauritius-dataset-electricity) (structured,
+hourly, with precise `from`/`to` times); falls back to scraping the CEB page if the dataset is unreachable.
 
 ## Install (HACS)
 
