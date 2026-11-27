@@ -7,6 +7,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -32,13 +33,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             data["_invoice"] = await api.latest_invoice(account)
             data["_daily"] = await api.daily_consumption(account)
             data["_hourly"] = await api.hourly_consumption(account)
+        except CebAuthError as err:
+            # Bad/stale PIN: stop polling and start reauth. Never keep retrying loginPin
+            # on a rejected PIN — CEB locks the account after a few bad attempts.
+            raise ConfigEntryAuthFailed(f"CEB PIN rejected: {err}") from err
         except Exception as err:
-            # one failed poll (e.g. a DNS blip) must not cost a whole 6 h interval
+            # Network/transient failure only: a blip must not cost a whole 6 h interval.
             coordinator.update_interval = RETRY_INTERVAL
             _LOGGER.warning("CEB update failed, retrying in %s: %r", RETRY_INTERVAL, err)
-            if isinstance(err, CebAuthError):
-                raise UpdateFailed(f"CEB auth failed: {err}") from err
-            raise
+            raise UpdateFailed(err) from err
         coordinator.update_interval = timedelta(hours=SCAN_INTERVAL_HOURS)
         return data
 

@@ -32,6 +32,13 @@
           "pin": "PIN",
           "account_number": "Contract number (on bill)"
         }
+      },
+      "reauth_confirm": {
+        "title": "CEB Mauritius — re-enter PIN",
+        "description": "The PIN for account {account} was rejected (it may have changed, or this device was removed in the MoKouran app). Enter your current MoKouran PIN.",
+        "data": {
+          "pin": "MoKouran PIN"
+        }
       }
     },
     "error": {
@@ -41,7 +48,8 @@
       "cannot_connect": "Could not reach CEB."
     },
     "abort": {
-      "already_configured": "This account is already added."
+      "already_configured": "This account is already added.",
+      "reauth_successful": "PIN updated; CEB Mauritius reconnected."
     }
   }
 }
