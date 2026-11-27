@@ -34,9 +34,16 @@ Polls every 6 hours (CEB data lags ~1–2 days); retries in 15 min after a failu
 
 `sensor.ceb_<account>_planned_outages` = count of CEB planned power cuts, scraped from
 <https://ceb.mu/customer-corner/power-outage-information>. The full list is in the `outages`
-attribute: `[{district, date, start, end, locality, streets}]`. Use the integration's **Configure**
-dialog to pick a **district** and an optional **locality / street keyword** to filter. Refreshed every
-6 h, independent of your account login. (It is an HTML scrape — may break if CEB changes the page.)
+attribute: `[{district, date, start, end, locality, streets}]`. The sensor counts only **upcoming** outages (today onward, soonest first) and exposes
+`next_date`, `next_start`, `next_end`, `next_locality`, `next_streets`.
+
+`binary_sensor.ceb_<account>_outage_in_my_area` turns **on** when a future outage matches your filter —
+use it for notifications. Same `next_*` attributes.
+
+Use the integration's **Configure** dialog to pick a **district** and an optional **locality / street
+keyword**. With a locality keyword, only outages whose locality/streets contain it match (e.g. `PEREYBERE`),
+so you are alerted only for your area. Refreshed every 6 h, independent of your account login.
+(It is an HTML scrape — may break if CEB changes the page.)
 
 ## Install (HACS)
 
