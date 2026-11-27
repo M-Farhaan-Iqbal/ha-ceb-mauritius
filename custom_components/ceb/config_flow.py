@@ -11,7 +11,14 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
@@ -22,7 +29,16 @@ from .api import (
     new_device_id,
     request_registration_code,
 )
-from .const import CONF_ACCOUNT, CONF_DEVICE_ID, CONF_EMAIL, CONF_PIN, DOMAIN
+from .const import (
+    CONF_ACCOUNT,
+    CONF_DEVICE_ID,
+    CONF_DISTRICT,
+    CONF_EMAIL,
+    CONF_LOCALITY,
+    CONF_PIN,
+    DISTRICTS,
+    DOMAIN,
+)
 
 REGISTER_SCHEMA = vol.Schema(
     {
@@ -44,6 +60,11 @@ MANUAL_SCHEMA = vol.Schema(
 
 class CebConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        return CebOptionsFlow()
 
     def __init__(self) -> None:
         self._email: str | None = None
@@ -172,3 +193,32 @@ class CebConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={"account": entry.data[CONF_ACCOUNT]},
         )
+
+
+class CebOptionsFlow(OptionsFlow):
+    """Options: which district's planned outages to show, and an optional locality filter."""
+
+    async def async_step_init(self, user_input=None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+        opts = self.config_entry.options
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_DISTRICT, default=opts.get(CONF_DISTRICT, "")
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        options=[
+                            selector.SelectOptionDict(value="", label="All districts")
+                        ]
+                        + [
+                            selector.SelectOptionDict(value=k, label=v)
+                            for k, v in DISTRICTS.items()
+                        ],
+                    )
+                ),
+                vol.Optional(CONF_LOCALITY, default=opts.get(CONF_LOCALITY, "")): str,
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

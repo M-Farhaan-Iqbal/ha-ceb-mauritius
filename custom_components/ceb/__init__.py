@@ -12,7 +12,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import CebApi, CebAuthError
-from .const import CONF_ACCOUNT, CONF_DEVICE_ID, CONF_PIN, DOMAIN, SCAN_INTERVAL_HOURS
+from .const import (
+    CONF_ACCOUNT,
+    CONF_DEVICE_ID,
+    CONF_PIN,
+    DOMAIN,
+    OUTAGE_SCAN_HOURS,
+    SCAN_INTERVAL_HOURS,
+)
+from .outages import fetch_outages
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR]
@@ -54,9 +62,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    # Separate coordinator for national planned outages (public page scrape, no auth).
+    # Kept apart so an account auth failure never blocks outages, and vice versa.
+    session = async_get_clientsession(hass)
+
+    async def _update_outages() -> list:
+        try:
+            return await fetch_outages(session)
+        except Exception as err:  # noqa: BLE001
+            raise UpdateFailed(err) from err
+
+    outage_coordinator: DataUpdateCoordinator = DataUpdateCoordinator(
+        hass,
+        _LOGGER,
+        name=f"{DOMAIN}_outages",
+        update_method=_update_outages,
+        update_interval=timedelta(hours=OUTAGE_SCAN_HOURS),
+    )
+    await outage_coordinator.async_refresh()  # non-fatal: outages are optional
+
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
+        "main": coordinator,
+        "outages": outage_coordinator,
+    }
+    entry.async_on_unload(entry.add_update_listener(_reload_on_options))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def _reload_on_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload when options (district/locality) change so the outage sensor updates."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

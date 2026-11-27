@@ -19,7 +19,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import tariff
-from .const import CONF_ACCOUNT, DOMAIN
+from .const import CONF_ACCOUNT, CONF_DISTRICT, CONF_LOCALITY, DOMAIN
+from .outages import filter_outages
 
 
 def _tariff_code(data: dict) -> str:
@@ -204,9 +205,11 @@ SENSORS: tuple[CebSensor, ...] = (
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, add_entities
 ) -> None:
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    store = hass.data[DOMAIN][entry.entry_id]
     account = entry.data[CONF_ACCOUNT]
-    add_entities(CebEntity(coordinator, account, d) for d in SENSORS)
+    entities: list = [CebEntity(store["main"], account, d) for d in SENSORS]
+    entities.append(CebOutageSensor(store["outages"], entry))
+    add_entities(entities)
 
 
 class CebEntity(CoordinatorEntity, SensorEntity):
@@ -267,3 +270,40 @@ class CebEntity(CoordinatorEntity, SensorEntity):
                 "history": _cost_history(data),  # [{month,kwh,cost}] oldest->newest
             }
         return None
+
+
+class CebOutageSensor(CoordinatorEntity, SensorEntity):
+    """Count of CEB planned power outages for the configured district/locality."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Planned outages"
+    _attr_icon = "mdi:transmission-tower-off"
+    _attr_native_unit_of_measurement = "outages"
+
+    def __init__(self, coordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        account = entry.data[CONF_ACCOUNT]
+        self._entry = entry
+        self._attr_unique_id = f"{account}_planned_outages"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, account)}, name=f"CEB {account}"
+        )
+
+    def _matches(self) -> list[dict]:
+        return filter_outages(
+            self.coordinator.data or [],
+            self._entry.options.get(CONF_DISTRICT),
+            self._entry.options.get(CONF_LOCALITY),
+        )
+
+    @property
+    def native_value(self):
+        return len(self._matches())
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "district": self._entry.options.get(CONF_DISTRICT) or "all",
+            "locality_filter": self._entry.options.get(CONF_LOCALITY) or None,
+            "outages": self._matches(),  # [{district,date,start,end,locality,streets,raw}]
+        }

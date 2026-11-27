@@ -51,5 +51,17 @@
       "already_configured": "This account is already added.",
       "reauth_successful": "PIN updated; CEB Mauritius reconnected."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "CEB planned outages",
+        "description": "Choose which district's planned power outages to show on the Planned outages sensor, and optionally filter by a locality or street keyword.",
+        "data": {
+          "district": "District",
+          "locality": "Locality / street keyword (optional)"
+        }
+      }
+    }
   }
 }
